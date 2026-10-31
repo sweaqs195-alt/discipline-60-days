@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>60 дней — Дисциплина</title>
+<style>
+:root{color-scheme:dark;--bg:#090909;--panel:#151515;--panel2:#1d1d1d;--line:#303030;--muted:#999;--white:#f5f5f5}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--white);font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:620px;margin:auto;padding:22px 16px 40px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:24px;letter-spacing:2px;margin:0}
+.eyebrow,.muted{color:var(--muted);font-size:12px}
+.pill{border:1px solid #444;border-radius:999px;padding:6px 10px;font-size:11px;letter-spacing:1px}
+.summary{margin:22px 0;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+.big{font-size:38px;font-weight:700;line-height:1.1;margin:8px 0}
+.track{height:8px;background:#343434;border-radius:99px;overflow:hidden;margin:12px 0 8px}
+.fill{height:100%;width:0;background:#f5f5f5;transition:width .2s}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0}
+button{background:#202020;color:var(--white);border:1px solid #414141;border-radius:12px;padding:10px 14px;font:inherit}
+button:disabled{opacity:.3}
+.weektitle{text-align:center;flex:1}
+.weektitle strong{display:block;font-size:16px}
+.weektitle span{font-size:12px;color:var(--muted)}
+.day{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px;margin:11px 0}
+.dayhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:650}
+.count{font-size:12px;color:var(--muted);font-weight:500}
+label{display:flex;align-items:center;gap:11px;padding:9px 2px;color:#ddd}
+input[type=checkbox]{appearance:none;width:20px;height:20px;border:1px solid #777;border-radius:6px;margin:0;flex:none;display:grid;place-items:center}
+input[type=checkbox]:checked{background:#f5f5f5;border-color:#f5f5f5}
+input[type=checkbox]:checked:after{content:"✓";color:#111;font-weight:800;font-size:14px}
+.weekbar{background:var(--panel2);padding:13px;border-radius:13px;margin-bottom:14px}
+.weekbarline{display:flex;justify-content:space-between;font-size:13px;margin-bottom:9px}
+.footer{color:var(--muted);font-size:12px;line-height:1.5;margin-top:20px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.actions button{font-size:12px}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="eyebrow">ЛИЧНЫЙ ТРЕКЕР</div><h1>60 DAYS</h1></div><div class="pill">01 NOV — 30 DEC 2026</div></header>
+<section class="summary">
+ <div class="muted">ОБЩИЙ ПРОГРЕСС</div>
+ <div class="big" id="percent">0%</div>
+ <div class="track"><div class="fill" id="overallFill"></div></div>
+ <div class="muted" id="overallText">0 из 300 отметок</div>
+</section>
+<div class="nav">
+ <button id="prev" aria-label="Предыдущая неделя">←</button>
+ <div class="weektitle"><strong id="weekLabel">Неделя 1 из 9</strong><span id="weekDates"></span></div>
+ <button id="next" aria-label="Следующая неделя">→</button>
+</div>
+<section class="weekbar">
+ <div class="weekbarline"><strong>Прогресс недели</strong><span id="weekProgress">0/35</span></div>
+ <div class="track" style="margin:0"><div class="fill" id="weekFill"></div></div>
+</section>
+<div id="days"></div>
+<div class="actions">
+ <button id="export">Экспортировать отметки</button>
+ <button id="reset">Сбросить все отметки</button>
+</div>
+<p class="footer">Отдых — тоже часть дисциплины. Отмечай тренировку только в запланированные дни, а отдых — когда дал(а) себе восстановиться. Отметки сохраняются на этом устройстве в браузере. Не очищай данные браузера, если хочешь сохранить прогресс.</p>
+</main>
+<script>
+const habits = ["Полноценный сон","Регулярное питание","Прогулка / активность","Тренировка по плану","Отдых и восстановление"];
+const start = new Date(2026,10,1);
+const dates = Array.from({length:60},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d;});
+const fmt = d => d.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+const key = d => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+let week = 0;
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem('discipline60') || '{}') || {}; } catch(e) { saved = {}; }
+const totalChecks = dates.length * habits.length;
+function checkedCount(){return Object.values(saved).filter(Boolean).length;}
+function save(){localStorage.setItem('discipline60',JSON.stringify(saved));}
+function render(){
+ const done=checkedCount(), pct=Math.round(done/totalChecks*100);
+ document.getElementById('percent').textContent=pct+'%';
+ document.getElementById('overallFill').style.width=pct+'%';
+ document.getElementById('overallText').textContent=`${done} из ${totalChecks} отметок`;
+ const first=week*7, chunk=dates.slice(first,first+7);
+ document.getElementById('weekLabel').textContent=`Неделя ${week+1} из 9`;
+ document.getElementById('weekDates').textContent=`${fmt(chunk[0])} — ${fmt(chunk[chunk.length-1])}`;
+ document.getElementById('prev').disabled=week===0;
+ document.getElementById('next').disabled=week===8;
+ const dayKeys=chunk.map(key);
+ const wdone=dayKeys.reduce((sum,k)=>sum+habits.filter(h=>saved[k+'|'+h]).length,0);
+ const wtotal=chunk.length*habits.length;
+ document.getElementById('weekProgress').textContent=`${wdone}/${wtotal}`;
+ document.getElementById('weekFill').style.width=(wdone/wtotal*100)+'%';
+ const root=document.getElementById('days');root.innerHTML='';
+ chunk.forEach((date)=>{
+  const k=key(date), count=habits.filter(h=>saved[k+'|'+h]).length;
+  const card=document.createElement('section');card.className='day';
+  const head=document.createElement('div');head.className='dayhead';
+  const name=document.createElement('span');name.textContent=date.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  const badge=document.createElement('span');badge.className='count';badge.textContent=count+'/5';
+  head.append(name,badge);card.append(head);
+  habits.forEach(h=>{
+   const label=document.createElement('label'), input=document.createElement('input'), span=document.createElement('span');
+   input.type='checkbox';input.checked=!!saved[k+'|'+h];span.textContent=h;
+   input.addEventListener('change',()=>{if(input.checked)saved[k+'|'+h]=true;else delete saved[k+'|'+h];save();render();});
+   label.append(input,span);card.append(label);
+  });
+  root.append(card);
+ });
+}
+document.getElementById('prev').onclick=()=>{week=Math.max(0,week-1);render();};
+document.getElementById('next').onclick=()=>{week=Math.min(8,week+1);render();};
+document.getElementById('reset').onclick=()=>{if(confirm('Точно удалить все отметки за 60 дней?')){saved={};save();render();}};
+document.getElementById('export').onclick=()=>{
+ const lines=['Дата,'+habits.join(',')];
+ dates.forEach(d=>{const k=key(d);lines.push([d.toLocaleDateString('ru-RU'),...habits.map(h=>saved[k+'|'+h]?'Да':'Нет')].join(','));});
+ const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='discipline-60-days.csv';a.click();URL.revokeObjectURL(url);
+};
+render();
+</script>
+</body>
+</html>
