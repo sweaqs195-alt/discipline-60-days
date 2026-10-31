@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>60 дней — Дисциплина</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:15px system-ui,sans-serif}
+main{max-width:600px;margin:auto;padding:22px 16px}
+h1{letter-spacing:2px}
+.panel,.day{background:#171717;border:1px solid #303030;border-radius:16px;padding:16px;margin:14px 0}
+.muted{color:#999;font-size:12px}
+.big{font-size:38px;font-weight:bold}
+.bar{height:8px;background:#383838;border-radius:20px;overflow:hidden;margin:10px 0}
+.fill{height:100%;background:white;width:0}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:10px}
+button{background:#222;color:white;border:1px solid #555;border-radius:10px;padding:11px 15px;font-size:14px}
+button:disabled{opacity:.3}
+.center{text-align:center;flex:1}
+.dayhead{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:10px}
+label{display:flex;align-items:center;gap:12px;padding:10px 0;color:#ddd}
+input{width:20px;height:20px;accent-color:white}
+</style>
+</head>
+<body>
+<main>
+<h1>60 DAYS</h1>
+<div class="muted">01 NOV — 30 DEC 2026</div>
+
+<section class="panel">
+<div class="muted">ОБЩИЙ ПРОГРЕСС</div>
+<div class="big" id="percent">0%</div>
+<div class="bar"><div class="fill" id="overall"></div></div>
+<div class="muted" id="total">0 из 300 отметок</div>
+</section>
+
+<div class="nav">
+<button id="prev">←</button>
+<div class="center">
+<strong id="week">Неделя 1 из 9</strong>
+<div class="muted" id="dates"></div>
+</div>
+<button id="next">→</button>
+</div>
+
+<section class="panel">
+<div class="dayhead"><span>Прогресс недели</span><span id="weekCount">0/35</span></div>
+<div class="bar"><div class="fill" id="weekBar"></div></div>
+</section>
+
+<div id="days"></div>
+<p class="muted">Отдых тоже важен. Тренируйся по плану, не пропускай питание и давай себе время на восстановление.</p>
+</main>
+
+<script>
+const habits=[
+"Полноценный сон",
+"Регулярное питание",
+"Прогулка / активность",
+"Тренировка по плану",
+"Отдых и восстановление"
+];
+
+const dates=Array.from({length:60},(_,i)=>{
+let d=new Date(2026,10,1);
+d.setDate(d.getDate()+i);
+return d;
+});
+
+const key=d=>`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const fmt=d=>d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"});
+let week=0;
+let saved={};
+
+try{saved=JSON.parse(localStorage.getItem("discipline60")||"{}")}catch(e){}
+
+function render(){
+let total=Object.values(saved).filter(Boolean).length;
+let percent=Math.round(total/300*100);
+document.getElementById("percent").textContent=percent+"%";
+document.getElementById("overall").style.width=percent+"%";
+document.getElementById("total").textContent=total+" из 300 отметок";
+
+let chunk=dates.slice(week*7,week*7+7);
+document.getElementById("week").textContent=`Неделя ${week+1} из 9`;
+document.getElementById("dates").textContent=fmt(chunk[0])+" — "+fmt(chunk[chunk.length-1]);
+
+document.getElementById("prev").disabled=week===0;
+document.getElementById("next").disabled=week===8;
+
+let count=0;
+chunk.forEach(d=>habits.forEach(h=>{if(saved[key(d)+"|"+h])count++}));
+let max=chunk.length*5;
+document.getElementById("weekCount").textContent=count+"/"+max;
+document.getElementById("weekBar").style.width=(count/max*100)+"%";
+
+let root=document.getElementById("days");
+root.innerHTML="";
+
+chunk.forEach(d=>{
+let k=key(d);
+let card=document.createElement("section");
+card.className="day";
+
+let head=document.createElement("div");
+head.className="dayhead";
+let name=document.createElement("span");
+name.textContent=d.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"});
+let badge=document.createElement("span");
+badge.className="muted";
+function updateBadge(){
+badge.textContent=habits.filter(h=>saved[k+"|"+h]).length+"/5";
+}
+updateBadge();
+head.append(name,badge);
+card.append(head);
+
+habits.forEach(h=>{
+let label=document.createElement("label");
+let input=document.createElement("input");
+input.type="checkbox";
+input.checked=!!saved[k+"|"+h];
+let text=document.createElement("span");
+text.textContent=h;
+
+input.onchange=()=>{
+if(input.checked)saved[k+"|"+h]=true;
+else delete saved[k+"|"+h];
+localStorage.setItem("discipline60",JSON.stringify(saved));
+render();
+};
+label.append(input,text);
+card.append(label);
+});
+root.append(card);
+});
+}
+
+document.getElementById("prev").onclick=()=>{week--;render()};
+document.getElementById("next").onclick=()=>{week++;render()};
+render();
+</script>
+</main>
+</body>
+</html>
